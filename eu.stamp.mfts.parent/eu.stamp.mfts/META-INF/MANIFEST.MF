@@ -1,0 +1,29 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: eu.stamp.mfts
+Bundle-Vendor: My Company
+Bundle-Version: 1.0.0.qualifier
+Bundle-SymbolicName: eu.stamp.mfts; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.xtext,
+ org.eclipse.xtext.xbase,
+ org.eclipse.equinox.common;bundle-version="3.5.0",
+ org.eclipse.emf.ecore,
+ org.eclipse.xtext.xbase.lib,
+ org.antlr.runtime,
+ org.eclipse.xtext.util,
+ org.eclipse.xtend.lib,
+ org.eclipse.emf.common
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Export-Package: eu.stamp.mfts.mFTS.impl,
+ eu.stamp.mfts.parser.antlr,
+ eu.stamp.mfts.parser.antlr.internal,
+ eu.stamp.mfts.generator,
+ eu.stamp.mfts.validation,
+ eu.stamp.mfts.mFTS,
+ eu.stamp.mfts.mFTS.util,
+ eu.stamp.mfts.serializer,
+ eu.stamp.mfts.scoping,
+ eu.stamp.mfts,
+ eu.stamp.mfts.services
+Import-Package: org.apache.log4j

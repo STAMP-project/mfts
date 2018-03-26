@@ -1,0 +1,117 @@
+grammar eu.stamp.mfts.MFTS hidden(WS, ML_COMMENT, SL_COMMENT)
+
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
+
+generate mFTS "http://www.stamp.eu/mfts/MFTS"
+
+Model:
+	(interfaces+=ServiceInterface | services+=Service | messages+=Message | tests+=TestSequence)*;	
+
+// ANNOTATION
+
+PlatformAnnotation returns PlatformAnnotation:
+	name=ANNOTATION_ID (value=STRING | value=EXTERN); 
+
+// SERVICES INTERFACE
+
+ServiceInterface: 'interface' name=ID ( annotations+=PlatformAnnotation )* '{'
+		(('sends' sends+=[Message|ID] ( "," sends+=[Message|ID])* ) | 
+		('receives' receives+=[Message|ID] ( "," receives+=[Message|ID])* ))*
+	'}';
+
+Message returns Message:
+	'message' name=ID '(' ( parameters+=Parameter ( "," parameters+=Parameter)* )? ')'
+	( annotations+=PlatformAnnotation )* ;
+	
+Parameter returns Parameter:
+	name=ID ( annotations+=PlatformAnnotation )*;
+
+// SERVICE INSTANCE
+
+Service: 'service' name=ID ':' interfaces+=[ServiceInterface|ID] (',' interfaces+=[ServiceInterface|ID])* ( annotations+=PlatformAnnotation )*;
+
+// TEST SEQUENCE
+
+TestSequence: 'test' name=ID ( annotations+=PlatformAnnotation )* actions=Seq;
+
+// ACTIONS
+
+Action returns Action:
+	Wait | Send | Expect | Par | Seq
+;
+
+Par : 'par' (name=ID)? 'within' time=TimeInterval ( annotations+=PlatformAnnotation )* '{' actions+=Action* '}' ;
+
+Seq : '{' actions+=Action* '}' ;
+
+Wait: 'wait' time=TimeInterval;
+
+Send: 'send' service=[Service|ID] '!' message=[Message|ID] '(' (parameters+=Expression ( "," parameters+=Expression)*)? ')' ( annotations+=PlatformAnnotation )*;
+
+Expect: 'expect' service=[Service|ID] '?' message=[Message|ID] 'within' time=TimeInterval ( annotations+=PlatformAnnotation )* ('assert' asserts+=Expression)*;
+
+
+// TIME INTERVALS
+
+TimeInterval returns TimeInterval: 
+	'[' min =  INT ':' max = INT ']'
+;
+
+// EXPRESSIONS
+Expression returns Expression:
+	ExternExpression | ByteLiteral | CharLiteral | IntegerLiteral | BooleanLiteral | StringLiteral | DoubleLiteral
+;
+
+ExternExpression returns ExternExpression:
+	expression=EXTERN ('&' segments+=Expression)*;
+	
+ByteLiteral returns ByteLiteral:
+	byteValue=BYTE;
+	
+CharLiteral returns CharLiteral:
+	charValue=CHAR;
+
+IntegerLiteral returns IntegerLiteral:
+	intValue=INT;
+
+BooleanLiteral returns BooleanLiteral:
+	(boolValue?='true') | {BooleanLiteral} 'false'
+	;
+
+StringLiteral returns StringLiteral:
+	stringValue=STRING;
+
+DoubleLiteral returns DoubleLiteral:
+	doubleValue = FLOAT;
+
+// LITTERALS
+
+terminal ID  		: '^'?('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+
+terminal BYTE returns ecore::EByte: "0x" ('0'..'9'|'a'..'f'|'A'..'F') ('0'..'9'|'a'..'f'|'A'..'F');
+
+terminal CHAR returns ecore::EByte: "'" ('\\0'|'\\t'|'\\n'|'\\r'|' '..'&'|'\\\''|'('..'['|'\\\\'|']'..'~') "'";
+
+terminal INT returns ecore::EInt: ('0'..'9')+;
+
+terminal FLOAT returns ecore::EDouble :
+('0'..'9')+ '.' ('0'..'9')* (('e'|'E') ('+' | '-')? ('0'..'9')+)?
+| '.' ('0'..'9')+ (('e'|'E') ('+' | '-')? ('0'..'9')+)?
+| ('0'..'9')+ ('e'|'E') ('+' | '-')? ('0'..'9')+;
+
+
+terminal ANNOTATION_ID:
+	"@" ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+
+
+terminal STRING: '"' ( '\\' . /* 'b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\' */ | !('\\'|'"') )* '"';
+			
+terminal EXTERN: '`' ( '\\' . | !('\\'|'`') )* '`';
+
+terminal ML_COMMENT	: '/*' -> '*/';
+terminal SL_COMMENT 	: '//' !('\n'|'\r')* ('\r'? '\n')?;
+
+terminal WS			: (' '|'\t'|'\r'|'\n')+;
+
+terminal ANY_OTHER: .;
+	

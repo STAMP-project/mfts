@@ -1,0 +1,73 @@
+// Define home automation messages
+message patient_position(room)
+message light_status(room, isOn)
+message light_command_on(room)
+message light_command_off(room)
+
+// Messages related to the Alarm
+message alarm_triggered()					@label "Alarm Triggered"
+message alarm_acknowleged()					@label "Alarm Acknowledged"
+message forward_alarm_to_response_center() 	@label "Alarm Forwarded to Response Center"
+message send_sms_to_relatives()				@label "SMS Sent to Relatives"
+
+interface AlarmObserver {
+	receives alarm_triggered
+}
+
+interface LightObserver {
+	receives light_status
+}
+
+interface LightController {
+	sends light_command_on, light_command_off
+}
+
+interface PositionObserver {
+	receives patient_position
+}
+
+interface RspCenterAction {
+	sends forward_alarm_to_response_center
+}
+
+interface SMSNotifer {
+	sends send_sms_to_relatives
+}
+
+service GatewayA 		: LightObserver
+service GatewayB 		: AlarmObserver, LightController, PositionObserver
+service Actuation 		: RspCenterAction
+service Notification 	: SMSNotifer
+
+test Test1 {
+	
+	// Set the context for the test
+	par within [1:10] {
+		send GatewayB!patient_position("livingroom")
+		send GatewayA!light_status("livingroom", true)
+		send GatewayA!light_status("kitchen", false)
+	}
+	
+	wait [2:10]
+	
+	// Patient is in the kitchen
+	send GatewayB!patient_position("kitchen")
+	
+	wait[2:10]
+	
+	// Alarm is triggeted
+	send GatewayB!alarm_triggered()
+	
+	// Check the 4 things that should happen when the alarm is triggered
+	par within [0:30] {
+		expect GatewayB?alarm_acknowleged within [0:5]
+		expect Actuation?forward_alarm_to_response_center within [0:5]
+		{
+			expect GatewayB?light_command_on within [0:10]
+				assert `room.equals("kitchen")`
+			wait [1:5]
+			send GatewayA!light_status("kitchen", true)
+		}
+		expect Notification?send_sms_to_relatives within [0:30]
+	}
+}
