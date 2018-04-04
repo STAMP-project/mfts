@@ -1,4 +1,7 @@
-target/
+target
+src-gen
+xtend-gen
+.settings/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
