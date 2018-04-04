@@ -3,10 +3,18 @@
  */
 package eu.stamp.mfts.generator
 
+import eu.stamp.mfts.mFTS.Action
+import eu.stamp.mfts.mFTS.Model
+import eu.stamp.mfts.mFTS.Send
+import eu.stamp.mfts.mFTS.Seq
+import eu.stamp.mfts.mFTS.Service
+import eu.stamp.mfts.mFTS.TestSequence
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.emf.ecore.EObject
+import eu.stamp.mfts.mFTS.Message
 
 /**
  * Generates code from your model files on save.
@@ -16,10 +24,54 @@ import org.eclipse.xtext.generator.IGeneratorContext
 class MFTSGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-//		fsa.generateFile('greetings.txt', 'People to greet: ' + 
-//			resource.allContents
-//				.filter(Greeting)
-//				.map[name]
-//				.join(', '))
+		resource.allContents.filter(Model).forEach[ m, i | 
+			val builder = new StringBuilder();
+			generate(m, builder)
+			fsa.generateFile('test' + i + '.plantuml', builder.toString)	
+		]
+	}
+	
+	private def void generate(Model m, StringBuilder builder) {
+		builder.append("@startuml\n");
+		m.tests.forEach[ t | 
+			generate(t, builder)
+		]
+		builder.append("@stopuml\n");
+	}
+	
+	private def void generate(TestSequence t, StringBuilder builder) {
+		generate(t.actions, builder)
+	}
+	
+	private def dispatch void generate(Action t, StringBuilder builder) {
+		System.err.println("Action " + t.class.name + " is not implemented yet. Please contact Franck Fleurey!")
+		//throw new UnsupportedOperationException("Action " + t.class.name + " is not implemented yet. Please contact Franck Fleurey!")
+	}
+	
+	private def dispatch void generate(Seq s, StringBuilder builder) {
+		s.actions.forEach[ a | 
+			generate(a, builder)
+		]
+	}
+	
+	private def dispatch void generate(Send s, StringBuilder builder) {
+		var EObject parent = s.eContainer
+		while (!(parent instanceof TestSequence)) {//FIXME: helpers!
+			parent = parent.eContainer
+		}
+		val from = parent as TestSequence
+		builder.append(from.name)
+		builder.append(" -> ")
+		builder.append(s.service.name)
+		builder.append(" : ")
+		generate(s.message, builder)
+		builder.append("\n");
+	}
+	
+	private def void generate(Message m, StringBuilder builder) {
+		builder.append(m.name)
+		builder.append("(")
+		builder.append(m.parameters.map[p | p.name].join(","))
+		builder.append(")")
 	}
 }
