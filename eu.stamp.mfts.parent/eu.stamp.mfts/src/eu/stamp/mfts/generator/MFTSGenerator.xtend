@@ -105,7 +105,7 @@ class MFTSGenerator extends AbstractGenerator {
 		val to = findTestSequence(e)
 		builder.append(e.time.min + "," + e.time.max + "\n")
 		builder.append(e.service.name)
-		builder.append(" -> ")
+		builder.append(" -[#green]> ")
 		builder.append(to.name)
 		builder.append(" : ")
 		generate(e.message, null, builder)
