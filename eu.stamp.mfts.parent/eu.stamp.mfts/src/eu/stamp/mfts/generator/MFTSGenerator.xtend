@@ -18,6 +18,15 @@ import eu.stamp.mfts.mFTS.Message
 import eu.stamp.mfts.mFTS.Wait
 import eu.stamp.mfts.mFTS.Par
 import eu.stamp.mfts.mFTS.Expect
+import eu.stamp.mfts.mFTS.Expression
+import java.util.List
+import eu.stamp.mfts.mFTS.StringLiteral
+import eu.stamp.mfts.mFTS.BooleanLiteral
+import eu.stamp.mfts.mFTS.IntegerLiteral
+import eu.stamp.mfts.mFTS.DoubleLiteral
+import eu.stamp.mfts.mFTS.ByteLiteral
+import eu.stamp.mfts.mFTS.CharLiteral
+import eu.stamp.mfts.mFTS.ExternExpression
 
 /**
  * Generates code from your model files on save.
@@ -77,7 +86,7 @@ class MFTSGenerator extends AbstractGenerator {
 		builder.append(" -> ")
 		builder.append(s.service.name)
 		builder.append(" : ")
-		generate(s.message, builder)
+		generate(s.message, s.parameters, builder)
 		builder.append("\n");
 	}
 	
@@ -99,14 +108,71 @@ class MFTSGenerator extends AbstractGenerator {
 		builder.append(" -> ")
 		builder.append(to.name)
 		builder.append(" : ")
-		generate(e.message, builder)
+		generate(e.message, null, builder)
+		if (!e.asserts.empty) {
+			builder.append("\nnote right:")
+			e.asserts.forEach[ a,i | 
+				if (i>0) {
+					builder.append(" and ")
+				}
+				generate(a, builder)
+			]
+		}
 		builder.append("\n");
 	}	
 	
-	private def void generate(Message m, StringBuilder builder) {
+	private def void generate(Message m, List<Expression> params, StringBuilder builder) {
 		builder.append(m.name)
 		builder.append("(")
-		builder.append(m.parameters.map[p | p.name].join(","))
+		if (params !== null) {
+			params.forEach[p,i | 
+				if (i > 0) {
+					builder.append(",")
+				}
+				generate(p, builder)
+			]
+		} else {
+			builder.append(m.parameters.map[p | p.name].join(","))
+		}
 		builder.append(")")
 	}
+	
+	private def dispatch void generate(Expression e, StringBuilder builder) {
+		System.err.println("Expression " + e.class.name + " is not implemented yet. Please contact Franck Fleurey!")
+		//throw new UnsupportedOperationException("Expression " + e.class.name + " is not implemented yet. Please contact Franck Fleurey!")
+	}
+	
+	private def dispatch void generate(StringLiteral e, StringBuilder builder) {
+		builder.append("\"" + e.stringValue + "\"")
+	}
+	
+	private def dispatch void generate(BooleanLiteral e, StringBuilder builder) {
+		builder.append(e.boolValue)
+	}	
+	
+	private def dispatch void generate(IntegerLiteral e, StringBuilder builder) {
+		builder.append(e.intValue)
+	}
+	
+	private def dispatch void generate(DoubleLiteral e, StringBuilder builder) {
+		builder.append(e.doubleValue)
+	}
+	
+	private def dispatch void generate(ByteLiteral e, StringBuilder builder) {
+		builder.append(e.byteValue)
+	}	
+	
+	private def dispatch void generate(CharLiteral e, StringBuilder builder) {
+		builder.append(e.charValue)
+	}
+	
+	private def dispatch void generate(ExternExpression e, StringBuilder builder) {
+		//builder.append("`")
+		builder.append(e.expression)
+		//builder.append("`")
+		e.segments.forEach[ exp |
+			builder.append(" & ") 
+			generate(exp, builder)
+		]
+	}	
 }
