@@ -15,6 +15,9 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.emf.ecore.EObject
 import eu.stamp.mfts.mFTS.Message
+import eu.stamp.mfts.mFTS.Wait
+import eu.stamp.mfts.mFTS.Par
+import eu.stamp.mfts.mFTS.Expect
 
 /**
  * Generates code from your model files on save.
@@ -36,10 +39,11 @@ class MFTSGenerator extends AbstractGenerator {
 		m.tests.forEach[ t | 
 			generate(t, builder)
 		]
-		builder.append("@stopuml\n");
+		builder.append("@enduml\n");
 	}
 	
 	private def void generate(TestSequence t, StringBuilder builder) {
+		builder.append("participant " + t.name + " #LightBlue\n")
 		generate(t.actions, builder)
 	}
 	
@@ -54,12 +58,21 @@ class MFTSGenerator extends AbstractGenerator {
 		]
 	}
 	
-	private def dispatch void generate(Send s, StringBuilder builder) {
-		var EObject parent = s.eContainer
-		while (!(parent instanceof TestSequence)) {//FIXME: helpers!
+	private def TestSequence findTestSequence(EObject o) {
+		var EObject parent = o.eContainer
+		while (!(parent instanceof TestSequence)) {
 			parent = parent.eContainer
 		}
-		val from = parent as TestSequence
+		return parent as TestSequence
+	}
+	
+	private def dispatch void generate(Wait w, StringBuilder builder) {
+		builder.append("...Wait[" + w.time.min + "," + w.time.max + "]...\n")
+	}
+	
+	private def dispatch void generate(Send s, StringBuilder builder) {
+		val from = findTestSequence(s)
+		builder.append("\n")
 		builder.append(from.name)
 		builder.append(" -> ")
 		builder.append(s.service.name)
@@ -67,6 +80,28 @@ class MFTSGenerator extends AbstractGenerator {
 		generate(s.message, builder)
 		builder.append("\n");
 	}
+	
+	private def dispatch void generate(Par p, StringBuilder builder) {
+		builder.append("par ")
+		builder.append(p.time.min + "," + p.time.max)
+		builder.append("\n")
+		p.actions.forEach[ a | 
+			builder.append("else ")
+			generate(a, builder)
+		]
+		builder.append("end\n")
+	}
+	
+	private def dispatch void generate(Expect e, StringBuilder builder) {
+		val to = findTestSequence(e)
+		builder.append(e.time.min + "," + e.time.max + "\n")
+		builder.append(e.service.name)
+		builder.append(" -> ")
+		builder.append(to.name)
+		builder.append(" : ")
+		generate(e.message, builder)
+		builder.append("\n");
+	}	
 	
 	private def void generate(Message m, StringBuilder builder) {
 		builder.append(m.name)
